@@ -1,16 +1,16 @@
 import React, { useEffect, useState, useRef } from "react";
-import { 
-  WiDaySunny, WiNightClear, 
-  WiDayCloudy, WiNightAltCloudy, 
-  WiCloudy, 
-  WiDayRain, WiNightAltRain, 
-  WiDayShowers, WiNightAltShowers, 
-  WiDayThunderstorm, WiNightAltThunderstorm, 
-  WiDaySnow, WiNightAltSnow, 
-  WiDayFog, WiNightFog 
+import {
+  WiDaySunny, WiNightClear,
+  WiDayCloudy, WiNightAltCloudy,
+  WiCloudy,
+  WiDayRain, WiNightAltRain,
+  WiDayShowers, WiNightAltShowers,
+  WiDayThunderstorm, WiNightAltThunderstorm,
+  WiDaySnow, WiNightAltSnow,
+  WiDayFog, WiNightFog
 } from "react-icons/wi";
 
-// Keep the list for reference but we won't use it for preloading
+
 const preloadVideos = [
   "Day-Clear.mp4",
   "Night-Clear.mp4",
@@ -30,13 +30,11 @@ const preloadVideos = [
 export default function WeatherMainCard({ weather }) {
   const [videoLoaded, setVideoLoaded] = useState(false);
   const videoRef = useRef(null);
-  const [videoKey, setVideoKey] = useState(0);
   const [videoSrc, setVideoSrc] = useState("");
   const [videoError, setVideoError] = useState(false);
   const [localTime, setLocalTime] = useState(null);
 
-  // REMOVED: The preloading effect that was causing performance issues
-  // This is the main change to improve INP
+
 
   useEffect(() => {
     if (!weather?.weather?.[0]) {
@@ -51,17 +49,13 @@ export default function WeatherMainCard({ weather }) {
     const weatherMain = weather.weather[0].main;
     const weatherDesc = weather.weather[0].description;
     const videoFileName = getWeatherTimeVideo(weatherMain, weatherDesc, weather.timezone);
-    
-    // MODIFIED: Removed timestamp query parameter to enable browser caching
-    const newVideoSrc = `/videos/${videoFileName}`;
-    
-    // REMOVED: Preloading code that created unnecessary video elements
-    
+
+    const newVideoSrc = `${import.meta.env.BASE_URL}videos/${videoFileName}`;
+
+
     setVideoLoaded(false);
     setVideoError(false);
-    setVideoKey(prev => prev + 1);
 
-    // Keep your existing video element cleanup
     if (videoRef.current) {
       videoRef.current.pause();
       videoRef.current.removeAttribute('src');
@@ -71,7 +65,6 @@ export default function WeatherMainCard({ weather }) {
     setVideoSrc(newVideoSrc);
   }, [weather]);
 
-  // ADDED: New effect for lazy loading with Intersection Observer
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !videoSrc) return;
@@ -80,9 +73,11 @@ export default function WeatherMainCard({ weather }) {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            // Only set the src when the video is visible
             video.src = videoSrc;
             video.load();
+            video.play().catch(error => {
+              console.log("Autoplay prevented, video is muted and will try to play on interaction");
+            });
             observer.unobserve(video);
           }
         });
@@ -93,29 +88,50 @@ export default function WeatherMainCard({ weather }) {
     observer.observe(video);
 
     return () => {
-      if (video) observer.unobserve(video);
+      observer.disconnect();
     };
   }, [videoSrc]);
+
+  useEffect(() => {
+    preloadVideos.forEach(videoName => {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.href = `${import.meta.env.BASE_URL}videos/${videoName}`;
+      link.as = 'video';
+      link.type = 'video/mp4';
+      document.head.appendChild(link);
+    });
+    return () => {
+      const links = document.querySelectorAll('link[rel="preload"][as="video"]');
+      links.forEach(link => {
+        if (document.head.contains(link)) {
+          document.head.removeChild(link);
+        }
+      });
+    };
+  }, [])
 
   const handleVideoPlay = () => {
     if (!videoRef.current) return;
     videoRef.current.play().catch(error => {
       document.addEventListener('click', function clickHandler() {
-        videoRef.current?.play().catch(() => {});
+        videoRef.current?.play().catch(() => { });
         document.removeEventListener('click', clickHandler);
       });
     });
   };
 
   const handleVideoError = () => {
+    console.error(`Video error for: ${videoSrc}`);
     setVideoError(true);
     const cityTime = getLocalTime(weather?.timezone || 0);
-    const fallbackVideo = cityTime.isDay ? "/videos/Day-Clear.mp4" : "/videos/Night-Clear.mp4";
+    const fallbackVideoName = cityTime.isDay ? "Day-Clear.mp4" : "Night-Clear.mp4";
+    const fallbackVideo = `${import.meta.env.BASE_URL}videos/${fallbackVideoName}`;
 
-    if (!videoSrc.includes(fallbackVideo)) {
-      // MODIFIED: Removed timestamp to enable caching
+    if (!videoSrc.includes(fallbackVideoName)) {
+      console.log(`Trying fallback video: ${fallbackVideo}`);
+      setVideoLoaded(false);
       setVideoSrc(fallbackVideo);
-      setVideoKey(prev => prev + 1);
     }
   };
 
@@ -123,10 +139,10 @@ export default function WeatherMainCard({ weather }) {
     const now = new Date();
     const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
     const cityTime = new Date(utcTime + timezoneOffset * 1000);
-    
+
     const hours = cityTime.getHours();
     const isDay = hours >= 6 && hours < 18;
-    
+
     return {
       time: cityTime,
       formattedTime: cityTime.toLocaleTimeString('en-US', {
@@ -147,10 +163,10 @@ export default function WeatherMainCard({ weather }) {
     const { isDay } = getLocalTime(timezone);
     const timeSuffix = isDay ? "day" : "night";
     const timePrefix = isDay ? "Day" : "Night";
-    
+
     const desc = description.toLowerCase();
     const mainLower = main.toLowerCase();
-    
+
     if (mainLower.includes("clear")) {
       return isDay ? "Day-Clear.mp4" : "Night-Clear.mp4";
     } else if (mainLower.includes("cloud")) {
@@ -169,20 +185,20 @@ export default function WeatherMainCard({ weather }) {
     } else if (mainLower.includes("snow")) {
       return `Snow-${timeSuffix}.mp4`;
     } else if (
-      mainLower.includes("mist") || 
-      mainLower.includes("fog") || 
+      mainLower.includes("mist") ||
+      mainLower.includes("fog") ||
       mainLower.includes("haze")
     ) {
       return `Haze-${timeSuffix}.mp4`;
     }
-    
+
     return isDay ? "Day-Clear.mp4" : "Night-Clear.mp4";
   }
 
   function getWeatherIcon(condition, iconCode, size = 70) {
     const isDay = iconCode ? iconCode.includes('d') : true;
     const cond = condition ? condition.toLowerCase() : "";
-    
+
     if (cond.includes("clear")) {
       return isDay ? <WiDaySunny size={size} /> : <WiNightClear size={size} />;
     } else if (cond.includes("cloud")) {
@@ -202,7 +218,7 @@ export default function WeatherMainCard({ weather }) {
     } else if (cond.includes("mist") || cond.includes("fog") || cond.includes("haze")) {
       return isDay ? <WiDayFog size={size} /> : <WiNightFog size={size} />;
     }
-    
+
     return isDay ? <WiDaySunny size={size} /> : <WiNightClear size={size} />;
   }
 
@@ -213,7 +229,6 @@ export default function WeatherMainCard({ weather }) {
       <div className="absolute inset-0 overflow-hidden">
         {videoSrc && !videoError && (
           <video
-            key={videoKey}
             ref={videoRef}
             src={videoSrc}
             className={`object-cover w-full h-full transition-opacity duration-500 ${videoLoaded ? 'opacity-60' : 'opacity-0'}`}
@@ -223,7 +238,6 @@ export default function WeatherMainCard({ weather }) {
             playsInline
             onCanPlay={() => {
               setVideoLoaded(true);
-              handleVideoPlay();
             }}
             onError={handleVideoError}
           />

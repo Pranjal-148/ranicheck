@@ -9,7 +9,7 @@ import AQICard from '../Components/AQICard'
 
 const REVERSE_GEOCODE_API_KEY = import.meta.env.VITE_REVERSE_GEOCODE_API_KEY;
 const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
-
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function WeatherPage({ weatherData: initialWeatherData, forecast: initialForecast, onSearch }) {
   const [active, setActive] = useState("Weather");

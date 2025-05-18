@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const AuthContext = createContext();
 
@@ -10,15 +11,15 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initAuth = async () => {
       setLoading(true);
-      
+
       try {
         const storedUser = localStorage.getItem("user");
         const storedToken = localStorage.getItem("token");
-        
+
         if (storedUser && storedToken) {
           setUser(JSON.parse(storedUser));
           setToken(storedToken);
-          
+
           await fetchUserProfile(storedToken);
         }
       } catch (error) {
@@ -30,15 +31,15 @@ export const AuthProvider = ({ children }) => {
 
     initAuth();
   }, []);
-  
+
   const fetchUserProfile = async (authToken) => {
     try {
-      const response = await fetch("http://localhost:5000/api/users/profile", {
+      const response = await fetch(`${API_URL}/api/users/profile`, {
         headers: {
           "x-auth-token": authToken || token
         }
       });
-      
+
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
@@ -75,12 +76,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
+    <AuthContext.Provider value={{
+      user,
       token,
-      loading, 
-      login, 
-      logout, 
+      loading,
+      login,
+      logout,
       fetchUserProfile,
       isAuthenticated
     }}>
