@@ -12,6 +12,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import About from "./pages/About";
 
 const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const ProtectedRoute = () => {
   const { user, loading } = useAuth();

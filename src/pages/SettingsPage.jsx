@@ -4,6 +4,8 @@ import { useAuth } from "../context/AuthContext";
 import { FiUser, FiMail, FiLock, FiTrash2, FiCheckCircle, FiAlertTriangle, FiLoader } from "react-icons/fi";
 import { WiCloud } from "react-icons/wi";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 export default function SettingsPage() {
   const { user, login, logout } = useAuth();
   const navigate = useNavigate();
@@ -32,7 +34,7 @@ export default function SettingsPage() {
   const fetchSavedCitiesCount = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/cities", {
+      const response = await fetch(`${API_URL}/api/cities`, {
         headers: { "x-auth-token": token }
       });
       if (response.ok) {
@@ -56,7 +58,7 @@ export default function SettingsPage() {
     
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/users/profile", {
+      const response = await fetch(`${API_URL}/api/users/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -98,7 +100,7 @@ export default function SettingsPage() {
     
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/users/password", {
+      const response = await fetch(`${API_URL}/api/users/password`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -131,7 +133,7 @@ export default function SettingsPage() {
     if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch("http://localhost:5000/api/users", {
+        const response = await fetch(`${API_URL}/api/users`,{
           method: "DELETE",
           headers: { "x-auth-token": token }
         });

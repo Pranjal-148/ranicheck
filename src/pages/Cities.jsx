@@ -13,6 +13,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function Cities() {
   const { user, token } = useAuth();
@@ -239,7 +240,7 @@ export default function Cities() {
 
     if (user && token) {
       try {
-        await fetch(`http://localhost:5000/api/cities/${encodeURIComponent(cityName)}`, {
+        await fetch(`${API_URL}/api/cities/${encodeURIComponent(cityName)}`, {
           method: "DELETE",
           headers: { "x-auth-token": token }
         });
