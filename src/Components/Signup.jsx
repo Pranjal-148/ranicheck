@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { WiDayRain } from "react-icons/wi";
 import { FiUser, FiMail, FiLock, FiArrowRight } from "react-icons/fi";
 
-const API_URL = import.meta.env.VITE_API_BASE_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 
 export default function Signup() {
