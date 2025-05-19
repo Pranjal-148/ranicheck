@@ -2,17 +2,16 @@
   "version": 2,
   "builds": [
     {
-      "src": "index.html",
-      "use": "@vercel/static"
+      "src": "vite.config.js",
+      "use": "@vercel/static-build"
     }
   ],
   "routes": [
     {
-      "src": "/videos/(.*)",
-      "dest": "/videos/$1"
+      "handle": "filesystem"
     },
     {
-      "src": "/(.*)",
+      "src": "/.*",
       "dest": "/index.html"
     }
   ]
