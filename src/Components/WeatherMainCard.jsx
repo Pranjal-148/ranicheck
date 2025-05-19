@@ -35,9 +35,10 @@ export default function WeatherMainCard({ weather }) {
 
   const getBaseUrl = () => {
     if (typeof window !== "undefined") {
-      return window.location.pathname.endsWith('/') 
-        ? window.location.pathname 
-        : window.location.pathname + '/';
+      const basePath = window.location.pathname.includes('/weather') 
+        ? '/weather/' 
+        : '/';
+      return basePath;
     }
     return "/";
   };
@@ -100,16 +101,18 @@ export default function WeatherMainCard({ weather }) {
     const criticalVideos = ["Day-Clear.mp4", "Night-Clear.mp4"];
     
     criticalVideos.forEach(videoName => {
-      const preloadLink = document.createElement('link');
-      preloadLink.rel = 'preload';
-      preloadLink.href = `${getBaseUrl()}videos/${videoName}`;
-      preloadLink.as = 'video';
-      document.head.appendChild(preloadLink);
+      const prefetchLink = document.createElement('link');
+      prefetchLink.rel = 'prefetch';
+      prefetchLink.href = `${getBaseUrl()}videos/${videoName}`;
+      prefetchLink.className = 'video-prefetch-link';
+      document.head.appendChild(prefetchLink);
     });
     
     return () => {
-      document.querySelectorAll('link[rel="preload"][as="video"]').forEach(link => {
-        document.head.removeChild(link);
+      document.querySelectorAll('.video-prefetch-link').forEach(link => {
+        if (document.head.contains(link)) {
+          document.head.removeChild(link);
+        }
       });
     };
   }, []);
@@ -118,11 +121,7 @@ export default function WeatherMainCard({ weather }) {
     console.error(`Video error for: ${videoSrc}`);
     setVideoError(true);
     
-    try {
-      setVideoLoaded(true); 
-    } catch (err) {
-      console.error("Error in video error handler:", err);
-    }
+    setVideoLoaded(true);
   };
 
   function getLocalTime(timezoneOffset) {
