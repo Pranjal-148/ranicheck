@@ -10,7 +10,6 @@ import {
   WiDayFog, WiNightFog
 } from "react-icons/wi";
 
-
 const preloadVideos = [
   "Day-Clear.mp4",
   "Night-Clear.mp4",
@@ -34,195 +33,208 @@ export default function WeatherMainCard({ weather }) {
   const [videoError, setVideoError] = useState(false);
   const [localTime, setLocalTime] = useState(null);
 
-
+  const getBaseUrl = () => {
+    if (typeof window !== "undefined") {
+      return window.location.pathname.endsWith('/') 
+        ? window.location.pathname 
+        : window.location.pathname + '/';
+    }
+    return "/";
+  };
 
   useEffect(() => {
-    if (!weather?.weather?.[0]) {
+    if (!weather || !weather.weather || !weather.weather[0]) {
       setVideoSrc("");
       setLocalTime(null);
       return;
     }
 
-    const cityLocalTime = getLocalTime(weather.timezone);
-    setLocalTime(cityLocalTime);
+    try {
+      const cityLocalTime = getLocalTime(weather.timezone);
+      setLocalTime(cityLocalTime);
 
-    const weatherMain = weather.weather[0].main;
-    const weatherDesc = weather.weather[0].description;
-    const videoFileName = getWeatherTimeVideo(weatherMain, weatherDesc, weather.timezone);
+      const weatherMain = weather.weather[0].main;
+      const weatherDesc = weather.weather[0].description;
+      const videoFileName = getWeatherTimeVideo(weatherMain, weatherDesc, weather.timezone);
 
-    const newVideoSrc = `${import.meta.env.BASE_URL}videos/${videoFileName}`;
+      const baseUrl = getBaseUrl();
+      const newVideoSrc = `${baseUrl}videos/${videoFileName}`;
+      
+      setVideoLoaded(false);
+      setVideoError(false);
 
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.removeAttribute('src');
+        videoRef.current.load();
+      }
 
-    setVideoLoaded(false);
-    setVideoError(false);
-
-    if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.removeAttribute('src');
-      videoRef.current.load();
+      setVideoSrc(newVideoSrc);
+    } catch (error) {
+      console.error("Error setting up weather video:", error);
+      setVideoError(true);
     }
-
-    setVideoSrc(newVideoSrc);
   }, [weather]);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !videoSrc) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            video.src = videoSrc;
-            video.load();
-            video.play().catch(error => {
-              console.log("Autoplay prevented, video is muted and will try to play on interaction");
-            });
-            observer.unobserve(video);
-          }
-        });
-      },
-      { threshold: 0.1 }
-    );
+    const handleVideoLoad = () => {
+      video.play().catch(error => {
+        console.log("Video play prevented:", error);
+      });
+    };
 
-    observer.observe(video);
-
+    video.src = videoSrc;
+    video.load();
+    
+    video.addEventListener('loadeddata', handleVideoLoad);
+    
     return () => {
-      observer.disconnect();
+      video.removeEventListener('loadeddata', handleVideoLoad);
     };
   }, [videoSrc]);
 
   useEffect(() => {
-    preloadVideos.forEach(videoName => {
-      const link = document.createElement('link');
-      link.rel = 'preload';
-      link.href = `${import.meta.env.BASE_URL}videos/${videoName}`;
-      link.as = 'video';
-      link.type = 'video/mp4';
-      document.head.appendChild(link);
+    const criticalVideos = ["Day-Clear.mp4", "Night-Clear.mp4"];
+    
+    criticalVideos.forEach(videoName => {
+      const preloadLink = document.createElement('link');
+      preloadLink.rel = 'preload';
+      preloadLink.href = `${getBaseUrl()}videos/${videoName}`;
+      preloadLink.as = 'video';
+      document.head.appendChild(preloadLink);
     });
+    
     return () => {
-      const links = document.querySelectorAll('link[rel="preload"][as="video"]');
-      links.forEach(link => {
-        if (document.head.contains(link)) {
-          document.head.removeChild(link);
-        }
+      document.querySelectorAll('link[rel="preload"][as="video"]').forEach(link => {
+        document.head.removeChild(link);
       });
     };
-  }, [])
-
-  const handleVideoPlay = () => {
-    if (!videoRef.current) return;
-    videoRef.current.play().catch(error => {
-      document.addEventListener('click', function clickHandler() {
-        videoRef.current?.play().catch(() => { });
-        document.removeEventListener('click', clickHandler);
-      });
-    });
-  };
+  }, []);
 
   const handleVideoError = () => {
     console.error(`Video error for: ${videoSrc}`);
     setVideoError(true);
-    const cityTime = getLocalTime(weather?.timezone || 0);
-    const fallbackVideoName = cityTime.isDay ? "Day-Clear.mp4" : "Night-Clear.mp4";
-    const fallbackVideo = `${import.meta.env.BASE_URL}videos/${fallbackVideoName}`;
-
-    if (!videoSrc.includes(fallbackVideoName)) {
-      console.log(`Trying fallback video: ${fallbackVideo}`);
-      setVideoLoaded(false);
-      setVideoSrc(fallbackVideo);
+    
+    try {
+      setVideoLoaded(true); 
+    } catch (err) {
+      console.error("Error in video error handler:", err);
     }
   };
 
   function getLocalTime(timezoneOffset) {
-    const now = new Date();
-    const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
-    const cityTime = new Date(utcTime + timezoneOffset * 1000);
+    try {
+      const now = new Date();
+      const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
+      const cityTime = new Date(utcTime + timezoneOffset * 1000);
 
-    const hours = cityTime.getHours();
-    const isDay = hours >= 6 && hours < 18;
+      const hours = cityTime.getHours();
+      const isDay = hours >= 6 && hours < 18;
 
-    return {
-      time: cityTime,
-      formattedTime: cityTime.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      }),
-      formattedDate: cityTime.toLocaleDateString('en-US', {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric'
-      }),
-      isDay
-    };
+      return {
+        time: cityTime,
+        formattedTime: cityTime.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        }),
+        formattedDate: cityTime.toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric'
+        }),
+        isDay
+      };
+    } catch (error) {
+      console.error("Error calculating local time:", error);
+      return {
+        time: new Date(),
+        formattedTime: "12:00 PM",
+        formattedDate: "Monday, January 1",
+        isDay: true
+      };
+    }
   }
 
   function getWeatherTimeVideo(main, description, timezone) {
-    const { isDay } = getLocalTime(timezone);
-    const timeSuffix = isDay ? "day" : "night";
-    const timePrefix = isDay ? "Day" : "Night";
+    try {
+      const { isDay } = getLocalTime(timezone);
+      const timeSuffix = isDay ? "day" : "night";
+      const timePrefix = isDay ? "Day" : "Night";
 
-    const desc = description.toLowerCase();
-    const mainLower = main.toLowerCase();
+      const desc = description.toLowerCase();
+      const mainLower = main.toLowerCase();
 
-    if (mainLower.includes("clear")) {
-      return isDay ? "Day-Clear.mp4" : "Night-Clear.mp4";
-    } else if (mainLower.includes("cloud")) {
-      if (isDay) {
-        if (desc.includes("few") || desc.includes("scattered")) {
-          return "Partly-cloudy-day.mp4";
+      if (mainLower.includes("clear")) {
+        return isDay ? "Day-Clear.mp4" : "Night-Clear.mp4";
+      } else if (mainLower.includes("cloud")) {
+        if (isDay) {
+          if (desc.includes("few") || desc.includes("scattered")) {
+            return "Partly-cloudy-day.mp4";
+          }
+          return "Cloudy-day.mp4";
+        } else {
+          return "Cloudy-night.mp4";
         }
-        return "Cloudy-day.mp4";
-      } else {
-        return "Cloudy-night.mp4";
+      } else if (mainLower.includes("rain") || mainLower.includes("drizzle")) {
+        return `Rain-${timeSuffix}.mp4`;
+      } else if (mainLower.includes("thunderstorm")) {
+        return `Thunderstorm-${timeSuffix}.mp4`;
+      } else if (mainLower.includes("snow")) {
+        return `Snow-${timeSuffix}.mp4`;
+      } else if (
+        mainLower.includes("mist") ||
+        mainLower.includes("fog") ||
+        mainLower.includes("haze")
+      ) {
+        return `Haze-${timeSuffix}.mp4`;
       }
-    } else if (mainLower.includes("rain") || mainLower.includes("drizzle")) {
-      return `Rain-${timeSuffix}.mp4`;
-    } else if (mainLower.includes("thunderstorm")) {
-      return `Thunderstorm-${timeSuffix}.mp4`;
-    } else if (mainLower.includes("snow")) {
-      return `Snow-${timeSuffix}.mp4`;
-    } else if (
-      mainLower.includes("mist") ||
-      mainLower.includes("fog") ||
-      mainLower.includes("haze")
-    ) {
-      return `Haze-${timeSuffix}.mp4`;
-    }
 
-    return isDay ? "Day-Clear.mp4" : "Night-Clear.mp4";
+      return isDay ? "Day-Clear.mp4" : "Night-Clear.mp4";
+    } catch (error) {
+      console.error("Error determining weather video:", error);
+      return "Day-Clear.mp4"; 
+    }
   }
 
   function getWeatherIcon(condition, iconCode, size = 70) {
-    const isDay = iconCode ? iconCode.includes('d') : true;
-    const cond = condition ? condition.toLowerCase() : "";
+    try {
+      const isDay = iconCode ? iconCode.includes('d') : true;
+      const cond = condition ? condition.toLowerCase() : "";
 
-    if (cond.includes("clear")) {
+      if (cond.includes("clear")) {
+        return isDay ? <WiDaySunny size={size} /> : <WiNightClear size={size} />;
+      } else if (cond.includes("cloud")) {
+        if (cond.includes("few") || cond.includes("scattered")) {
+          return isDay ? <WiDayCloudy size={size} /> : <WiNightAltCloudy size={size} />;
+        }
+        return <WiCloudy size={size} />;
+      } else if (cond.includes("rain") || cond.includes("drizzle")) {
+        if (cond.includes("light") || cond.includes("moderate")) {
+          return isDay ? <WiDayShowers size={size} /> : <WiNightAltShowers size={size} />;
+        }
+        return isDay ? <WiDayRain size={size} /> : <WiNightAltRain size={size} />;
+      } else if (cond.includes("thunderstorm")) {
+        return isDay ? <WiDayThunderstorm size={size} /> : <WiNightAltThunderstorm size={size} />;
+      } else if (cond.includes("snow")) {
+        return isDay ? <WiDaySnow size={size} /> : <WiNightAltSnow size={size} />;
+      } else if (cond.includes("mist") || cond.includes("fog") || cond.includes("haze")) {
+        return isDay ? <WiDayFog size={size} /> : <WiNightFog size={size} />;
+      }
+
       return isDay ? <WiDaySunny size={size} /> : <WiNightClear size={size} />;
-    } else if (cond.includes("cloud")) {
-      if (cond.includes("few") || cond.includes("scattered")) {
-        return isDay ? <WiDayCloudy size={size} /> : <WiNightAltCloudy size={size} />;
-      }
-      return <WiCloudy size={size} />;
-    } else if (cond.includes("rain") || cond.includes("drizzle")) {
-      if (cond.includes("light") || cond.includes("moderate")) {
-        return isDay ? <WiDayShowers size={size} /> : <WiNightAltShowers size={size} />;
-      }
-      return isDay ? <WiDayRain size={size} /> : <WiNightAltRain size={size} />;
-    } else if (cond.includes("thunderstorm")) {
-      return isDay ? <WiDayThunderstorm size={size} /> : <WiNightAltThunderstorm size={size} />;
-    } else if (cond.includes("snow")) {
-      return isDay ? <WiDaySnow size={size} /> : <WiNightAltSnow size={size} />;
-    } else if (cond.includes("mist") || cond.includes("fog") || cond.includes("haze")) {
-      return isDay ? <WiDayFog size={size} /> : <WiNightFog size={size} />;
+    } catch (error) {
+      console.error("Error determining weather icon:", error);
+      return <WiDaySunny size={size} />; 
     }
-
-    return isDay ? <WiDaySunny size={size} /> : <WiNightClear size={size} />;
   }
 
-  if (!weather) return null;
+  if (!weather || !weather.weather || !weather.weather[0]) {
+    return null;
+  }
 
   return (
     <div className="relative overflow-hidden rounded-2xl bg-blue-800/20 backdrop-blur-md h-full">
@@ -230,9 +242,7 @@ export default function WeatherMainCard({ weather }) {
         {videoSrc && !videoError && (
           <video
             ref={videoRef}
-            src={videoSrc}
             className={`object-cover w-full h-full transition-opacity duration-500 ${videoLoaded ? 'opacity-60' : 'opacity-0'}`}
-            autoPlay
             muted
             loop
             playsInline
