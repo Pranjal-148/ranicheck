@@ -35,8 +35,8 @@ export default function WeatherMainCard({ weather }) {
 
   const getBaseUrl = () => {
     if (typeof window !== "undefined") {
-      const basePath = window.location.pathname.includes('/weather') 
-        ? '/weather/' 
+      const basePath = window.location.pathname.includes('/weather')
+        ? '/weather/'
         : '/';
       return basePath;
     }
@@ -58,17 +58,13 @@ export default function WeatherMainCard({ weather }) {
       const weatherDesc = weather.weather[0].description;
       const videoFileName = getWeatherTimeVideo(weatherMain, weatherDesc, weather.timezone);
 
-      
+
       const newVideoSrc = `videos/${videoFileName}`;
-      
+
       setVideoLoaded(false);
       setVideoError(false);
 
-      if (videoRef.current) {
-        videoRef.current.pause();
-        videoRef.current.removeAttribute('src');
-        videoRef.current.load();
-      }
+
 
       setVideoSrc(newVideoSrc);
     } catch (error) {
@@ -80,18 +76,13 @@ export default function WeatherMainCard({ weather }) {
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !videoSrc) return;
-
     const handleVideoLoad = () => {
       video.play().catch(error => {
         console.log("Video play prevented:", error);
       });
     };
 
-    video.src = videoSrc;
-    video.load();
-    
     video.addEventListener('loadeddata', handleVideoLoad);
-    
     return () => {
       video.removeEventListener('loadeddata', handleVideoLoad);
     };
@@ -99,7 +90,7 @@ export default function WeatherMainCard({ weather }) {
 
   useEffect(() => {
     const criticalVideos = ["Day-Clear.mp4", "Night-Clear.mp4"];
-    
+
     criticalVideos.forEach(videoName => {
       const prefetchLink = document.createElement('link');
       prefetchLink.rel = 'prefetch';
@@ -107,7 +98,7 @@ export default function WeatherMainCard({ weather }) {
       prefetchLink.className = 'video-prefetch-link';
       document.head.appendChild(prefetchLink);
     });
-    
+
     return () => {
       document.querySelectorAll('.video-prefetch-link').forEach(link => {
         if (document.head.contains(link)) {
@@ -120,7 +111,7 @@ export default function WeatherMainCard({ weather }) {
   const handleVideoError = () => {
     console.error(`Video error for: ${videoSrc}`);
     setVideoError(true);
-    
+
     setVideoLoaded(true);
   };
 
@@ -195,7 +186,7 @@ export default function WeatherMainCard({ weather }) {
       return isDay ? "Day-Clear.mp4" : "Night-Clear.mp4";
     } catch (error) {
       console.error("Error determining weather video:", error);
-      return "Day-Clear.mp4"; 
+      return "Day-Clear.mp4";
     }
   }
 
@@ -227,7 +218,7 @@ export default function WeatherMainCard({ weather }) {
       return isDay ? <WiDaySunny size={size} /> : <WiNightClear size={size} />;
     } catch (error) {
       console.error("Error determining weather icon:", error);
-      return <WiDaySunny size={size} />; 
+      return <WiDaySunny size={size} />;
     }
   }
 
@@ -240,8 +231,10 @@ export default function WeatherMainCard({ weather }) {
       <div className="absolute inset-0 overflow-hidden">
         {videoSrc && !videoError && (
           <video
+            key={videoSrc}
             ref={videoRef}
-            className={`object-cover w-full h-full transition-opacity duration-500 ${videoLoaded ? 'opacity-60' : 'opacity-0'}`}
+            src={videoSrc}
+            className={`object-cover w-full h-full transition-opacity duration-500 blur-sm ${videoLoaded ? 'opacity-60' : 'opacity-0'}`}
             muted
             loop
             playsInline
