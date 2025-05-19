@@ -58,13 +58,11 @@ export default function WeatherMainCard({ weather }) {
       const weatherDesc = weather.weather[0].description;
       const videoFileName = getWeatherTimeVideo(weatherMain, weatherDesc, weather.timezone);
 
-
-      const newVideoSrc = `videos/${videoFileName}`;
-
       setVideoLoaded(false);
       setVideoError(false);
 
-
+      const timestamp = new Date().getTime();
+      const newVideoSrc = `videos/${videoFileName}?t=${timestamp}`;
 
       setVideoSrc(newVideoSrc);
     } catch (error) {
@@ -231,10 +229,10 @@ export default function WeatherMainCard({ weather }) {
       <div className="absolute inset-0 overflow-hidden">
         {videoSrc && !videoError && (
           <video
-            key={videoSrc}
+            key={`video-${weather.name}-${weather.weather[0].main}`}
             ref={videoRef}
             src={videoSrc}
-            className={`object-cover w-full h-full transition-opacity duration-500 blur-sm ${videoLoaded ? 'opacity-60' : 'opacity-0'}`}
+            className={`object-cover w-full h-full transition-opacity duration-500 blur-xs ${videoLoaded ? 'opacity-60' : 'opacity-0'}`}
             muted
             loop
             playsInline
