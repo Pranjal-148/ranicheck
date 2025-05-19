@@ -58,8 +58,8 @@ export default function WeatherMainCard({ weather }) {
       const weatherDesc = weather.weather[0].description;
       const videoFileName = getWeatherTimeVideo(weatherMain, weatherDesc, weather.timezone);
 
-      const baseUrl = getBaseUrl();
-      const newVideoSrc = `${baseUrl}videos/${videoFileName}`;
+      
+      const newVideoSrc = `videos/${videoFileName}`;
       
       setVideoLoaded(false);
       setVideoError(false);
