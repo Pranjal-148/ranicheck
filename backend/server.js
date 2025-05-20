@@ -4,9 +4,7 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
-const { sendWelcomeEmail } = require('./utils/emailService');
 const { sendWelcomeEmail, verifyConnection } = require('./utils/emailService');
-
 
 const app = express();
 
@@ -64,10 +62,9 @@ app.post('/api/register', async (req, res) => {
       await sendWelcomeEmail(name, email);
       console.log(`Welcome email successfully queued for ${email}`);
     } catch (emailError) {
-      // Log the error but don't fail the registration
       console.error('Failed to send welcome email:', emailError);
     }
-    
+
     res.status(201).json({ message: 'User registered successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
