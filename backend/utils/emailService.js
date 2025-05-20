@@ -1,11 +1,14 @@
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true, 
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD
-  }
+  },
+  debug: true
 });
 
 /**
@@ -16,6 +19,11 @@ const transporter = nodemailer.createTransport({
  */
 const sendWelcomeEmail = async (name, email) => {
   try {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+      console.warn('Email credentials not found in environment variables');
+      return false;
+    }
+    
     const mailOptions = {
       from: `"RainCheck Weather" <${process.env.EMAIL_USER}>`,
       to: email,
@@ -36,8 +44,8 @@ const sendWelcomeEmail = async (name, email) => {
       `
     };
 
-    await transporter.sendMail(mailOptions);
-    console.log(`Welcome email sent to ${email}`);
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`Welcome email sent to ${email} - Message ID: ${info.messageId}`);
     return true;
   } catch (error) {
     console.error('Error sending welcome email:', error);
@@ -45,6 +53,18 @@ const sendWelcomeEmail = async (name, email) => {
   }
 };
 
+const verifyConnection = async () => {
+  try {
+    await transporter.verify();
+    console.log('SMTP connection established successfully');
+  } catch (error) {
+    console.error('SMTP connection error:', error);
+  }
+};
+
+verifyConnection().catch(console.error);
+
 module.exports = {
-  sendWelcomeEmail
+  sendWelcomeEmail,
+  verifyConnection
 };
