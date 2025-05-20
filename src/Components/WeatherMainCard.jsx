@@ -147,47 +147,53 @@ export default function WeatherMainCard({ weather }) {
     }
   }
 
-  function getWeatherTimeVideo(main, description, timezone) {
-    try {
-      const { isDay } = getLocalTime(timezone);
-      const timeSuffix = isDay ? "day" : "night";
-      const timePrefix = isDay ? "Day" : "Night";
-
-      const desc = description.toLowerCase();
-      const mainLower = main.toLowerCase();
-
-      if (mainLower.includes("clear")) {
-        return isDay ? "Day-Clear.mp4" : "Night-Clear.mp4";
-      } else if (mainLower.includes("cloud")) {
-        if (isDay) {
-          if (desc.includes("few") || desc.includes("scattered")) {
-            return "Partly-cloudy-day.mp4";
-          }
-          return "Cloudy-day.mp4";
-        } else {
-          return "Cloudy-night.mp4";
+function getWeatherTimeVideo(main, description, timezone) {
+  try {
+    const localTimeData = getLocalTime(timezone);
+    const { isDay, time } = localTimeData;
+    const hours = time.getHours();
+    
+    const isSunset = hours >= 17 && hours < 19;
+    
+    const timeSuffix = isDay ? "day" : "night";
+    const timePrefix = isDay ? "Day" : "Night";
+    
+    const desc = description.toLowerCase();
+    const mainLower = main.toLowerCase();
+    
+    if (mainLower.includes("rain") || mainLower.includes("drizzle")) {
+      return `Rain-${timeSuffix}.mp4`;
+    } else if (mainLower.includes("thunderstorm")) {
+      return `Thunderstorm-${timeSuffix}.mp4`;
+    } else if (mainLower.includes("cloud")) {
+      if (isDay) {
+        if (desc.includes("few") || desc.includes("scattered")) {
+          return "Partly-cloudy-day.mp4";
         }
-      } else if (mainLower.includes("rain") || mainLower.includes("drizzle")) {
-        return `Rain-${timeSuffix}.mp4`;
-      } else if (mainLower.includes("thunderstorm")) {
-        return `Thunderstorm-${timeSuffix}.mp4`;
-      } else if (mainLower.includes("snow")) {
-        return `Snow-${timeSuffix}.mp4`;
-      } else if (
-        mainLower.includes("mist") ||
-        mainLower.includes("fog") ||
-        mainLower.includes("haze")
-      ) {
-        return `Haze-${timeSuffix}.mp4`;
+        return "Cloudy-day.mp4";
+      } else {
+        return "Cloudy-night.mp4";
       }
-
-      return isDay ? "Day-Clear.mp4" : "Night-Clear.mp4";
-    } catch (error) {
-      console.error("Error determining weather video:", error);
-      return "Day-Clear.mp4";
+    } else if (mainLower.includes("snow")) {
+      return `Snow-${timeSuffix}.mp4`;
+    } else if (
+      mainLower.includes("mist") ||
+      mainLower.includes("fog") ||
+      mainLower.includes("haze")
+    ) {
+      return `Haze-${timeSuffix}.mp4`;
     }
+    
+    if (isSunset) {
+      return "Evening.mp4";
+    }
+    
+    return isDay ? "Day-Clear.mp4" : "Night-Clear.mp4";
+  } catch (error) {
+    console.error("Error determining weather video:", error);
+    return "Day-Clear.mp4";
   }
-
+}
   function getWeatherIcon(condition, iconCode, size = 70) {
     try {
       const isDay = iconCode ? iconCode.includes('d') : true;

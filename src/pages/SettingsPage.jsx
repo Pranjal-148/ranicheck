@@ -19,6 +19,11 @@ export default function SettingsPage() {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [loading, setLoading] = useState(false);
   const [savedCitiesCount, setSavedCitiesCount] = useState(0);
+  const [passwordVisibility, setPasswordVisibility] = useState({
+    currentPassword: false,
+    newPassword: false,
+    confirmPassword: false
+  });
 
   useEffect(() => {
     if (user) {
@@ -31,6 +36,12 @@ export default function SettingsPage() {
     }
   }, [user]);
 
+  const togglePasswordVisibility = (field) => {
+    setPasswordVisibility(prev => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
+  };
   const fetchSavedCitiesCount = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -55,7 +66,7 @@ export default function SettingsPage() {
     e.preventDefault();
     setMessage({ type: "", text: "" });
     setLoading(true);
-    
+
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`${API_URL}/api/users/profile`, {
@@ -69,10 +80,10 @@ export default function SettingsPage() {
           email: formData.email
         })
       });
-      
+
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Failed to update profile");
-      
+
       login({ ...user, name: formData.name, email: formData.email });
       setMessage({ type: "success", text: "Profile updated successfully!" });
     } catch (error) {
@@ -85,19 +96,19 @@ export default function SettingsPage() {
   const handlePasswordUpdate = async (e) => {
     e.preventDefault();
     setMessage({ type: "", text: "" });
-    
+
     if (formData.newPassword !== formData.confirmPassword) {
       setMessage({ type: "error", text: "New passwords don't match" });
       return;
     }
-    
+
     if (formData.newPassword.length < 6) {
       setMessage({ type: "error", text: "Password must be at least 6 characters" });
       return;
     }
-    
+
     setLoading(true);
-    
+
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`${API_URL}/api/users/password`, {
@@ -111,10 +122,10 @@ export default function SettingsPage() {
           newPassword: formData.newPassword
         })
       });
-      
+
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Failed to update password");
-      
+
       setFormData(prev => ({
         ...prev,
         currentPassword: "",
@@ -133,16 +144,16 @@ export default function SettingsPage() {
     if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch(`${API_URL}/api/users`,{
+        const response = await fetch(`${API_URL}/api/users`, {
           method: "DELETE",
           headers: { "x-auth-token": token }
         });
-        
+
         if (!response.ok) {
           const data = await response.json();
           throw new Error(data.message || "Failed to delete account");
         }
-        
+
         logout();
         navigate("/");
       } catch (error) {
@@ -172,7 +183,7 @@ export default function SettingsPage() {
                 <p className="text-gray-300">{user?.email}</p>
               </div>
             </div>
-            
+
             <div className="border-t border-blue-700/50 pt-4 mb-4">
               <div className="flex items-center mb-3">
                 <WiCloud size={24} className="text-blue-300 mr-2" />
@@ -182,7 +193,7 @@ export default function SettingsPage() {
                 Account created: {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
               </div>
             </div>
-            
+
             <button
               onClick={handleDeleteAccount}
               className="w-full mt-4 bg-red-600/30 hover:bg-red-600/50 text-red-200 py-2 px-4 rounded-lg flex items-center justify-center transition-colors"
@@ -192,14 +203,13 @@ export default function SettingsPage() {
             </button>
           </div>
         </div>
-        
+
         {/* Settings Forms */}
         <div className="lg:col-span-2">
           {/* Message Display */}
           {message.text && (
-            <div className={`mb-6 p-4 rounded-lg flex items-center ${
-              message.type === "success" ? "bg-green-600/30 text-green-200" : "bg-red-600/30 text-red-200"
-            }`}>
+            <div className={`mb-6 p-4 rounded-lg flex items-center ${message.type === "success" ? "bg-green-600/30 text-green-200" : "bg-red-600/30 text-red-200"
+              }`}>
               {message.type === "success" ? (
                 <FiCheckCircle className="mr-2" />
               ) : (
@@ -208,7 +218,7 @@ export default function SettingsPage() {
               {message.text}
             </div>
           )}
-          
+
           {/* Profile Form */}
           <div className="bg-blue-800/30 backdrop-blur-md rounded-xl p-6 mb-6">
             <h2 className="text-xl font-semibold mb-4">Profile Information</h2>
@@ -230,7 +240,7 @@ export default function SettingsPage() {
                   />
                 </div>
               </div>
-              
+
               <div className="mb-4">
                 <label htmlFor="email" className="block text-gray-300 mb-2">Email</label>
                 <div className="relative">
@@ -248,7 +258,7 @@ export default function SettingsPage() {
                   />
                 </div>
               </div>
-              
+
               <button
                 type="submit"
                 disabled={loading}
@@ -263,7 +273,7 @@ export default function SettingsPage() {
               </button>
             </form>
           </div>
-          
+
           {/* Password Form */}
           <div className="bg-blue-800/30 backdrop-blur-md rounded-xl p-6">
             <h2 className="text-xl font-semibold mb-4">Change Password</h2>
@@ -277,15 +287,31 @@ export default function SettingsPage() {
                   <input
                     id="currentPassword"
                     name="currentPassword"
-                    type="password"
+                    type={passwordVisibility.currentPassword ? "text" : "password"}
                     value={formData.currentPassword}
                     onChange={handleChange}
-                    className="bg-blue-900/50 text-white w-full pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    className="bg-blue-900/50 text-white w-full pl-10 pr-12 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                     placeholder="••••••••"
                   />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    onClick={() => togglePasswordVisibility("currentPassword")}
+                  >
+                    {passwordVisibility.currentPassword ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-400">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-400">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    )}
+                  </button>
                 </div>
               </div>
-              
+
               <div className="mb-4">
                 <label htmlFor="newPassword" className="block text-gray-300 mb-2">New Password</label>
                 <div className="relative">
@@ -295,15 +321,31 @@ export default function SettingsPage() {
                   <input
                     id="newPassword"
                     name="newPassword"
-                    type="password"
+                    type={passwordVisibility.newPassword ? "text" : "password"}
                     value={formData.newPassword}
                     onChange={handleChange}
-                    className="bg-blue-900/50 text-white w-full pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    className="bg-blue-900/50 text-white w-full pl-10 pr-12 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                     placeholder="••••••••"
                   />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    onClick={() => togglePasswordVisibility("newPassword")}
+                  >
+                    {passwordVisibility.newPassword ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-400">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-400">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    )}
+                  </button>
                 </div>
               </div>
-              
+
               <div className="mb-4">
                 <label htmlFor="confirmPassword" className="block text-gray-300 mb-2">Confirm New Password</label>
                 <div className="relative">
@@ -313,15 +355,31 @@ export default function SettingsPage() {
                   <input
                     id="confirmPassword"
                     name="confirmPassword"
-                    type="password"
+                    type={passwordVisibility.confirmPassword ? "text" : "password"}
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    className="bg-blue-900/50 text-white w-full pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    className="bg-blue-900/50 text-white w-full pl-10 pr-12 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                     placeholder="••••••••"
                   />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    onClick={() => togglePasswordVisibility("confirmPassword")}
+                  >
+                    {passwordVisibility.confirmPassword ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-400">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-400">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    )}
+                  </button>
                 </div>
               </div>
-              
+
               <button
                 type="submit"
                 disabled={loading}
